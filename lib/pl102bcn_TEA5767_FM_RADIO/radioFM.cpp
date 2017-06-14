@@ -72,14 +72,9 @@ uint8_t radioFM::setSense(uint8_t sense){
 }
 
 double radioFM::getFrecuency(){
-	double frecuency;
-	if(this->loInjection()){
-		frecuency = 0;
-	}
-	else{
-		frecuency=0;
-	}
-	return 0;
+	double frequency;
+	frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4-225000;
+	return frequency;
 }
 
 uint8_t radioFM::getIfCounter(){
