@@ -2,6 +2,7 @@
 #include <Wire.h>
 //#include <LiquidCrystal.h>
 #include "radioFM.h"
+#include "SerialCommand.h"
 
 unsigned char search_mode=0;
 
@@ -23,6 +24,7 @@ double frequency=0;
 double freq_available=0;
 
 radioFM Radio;
+SerialCommand sCmd;
 
 
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
@@ -31,10 +33,13 @@ void setup()   {
 
   Serial.begin(115200);
   delay(3000);
-  Serial.print("Inicializando...");
+  Serial.println("Inicializando...");
   Wire.begin();
   //lcd.begin(16, 2);
   Radio.init();
+
+  sCmd.addCommand("fq", setFq_sCmd);
+  sCmd.addDefaultHandler(whatDyS);
   /// buttons
 
   pinMode(Button_next, INPUT);
@@ -76,9 +81,9 @@ void loop()
 {
 
   unsigned char buffer[5];
-
+  sCmd.readSerial();
   //lcd.setCursor(0, 0);
-
+  /*
   Wire.requestFrom(0x60,5); //reading TEA5767
 
   if (Wire.available())
@@ -88,6 +93,7 @@ void loop()
 
       buffer[i]= Wire.read();
     }
+
 
     freq_available=(((buffer[0]&0x3F)<<8)+buffer[1])*32768/4-225000;
 
@@ -133,13 +139,13 @@ void loop()
     delay(1000);
 
   }
-
+  */
   ///// buttons read
 
   //////////// button_next//////////
   if (!digitalRead(Button_next)) {
 
-    frequency=(freq_available/1000000)+0.1;
+    frequency=(freq_available/1000000)+0.01;
 
     frequencyB=4*(frequency*1000000+225000)/32768+1;
 
@@ -236,4 +242,41 @@ void loop()
 
   ////////////////////
 
+}
+
+void setFq_sCmd(){
+  double aNumber;
+  char *arg;
+
+
+  arg = sCmd.next();
+  if (arg != NULL)
+  {
+    Serial.print("Set frequency to: ");
+    aNumber=atol(arg);
+    Serial.print(aNumber/1000000);
+    Serial.println(" MHz.");
+  }
+  else{
+    updateStatus();
+  }
+}
+
+void whatDyS(){
+  Serial.println("What do you say?");
+}
+
+void updateStatus(){
+  Radio.readStatus();
+  Serial.println("*****************************************************");
+  Serial.print("FRECUENCY: ");
+  Serial.print(Radio.getFrecuency()/1000000);
+  Serial.println(" MHz.");
+  if(Radio.isRf())Serial.print("RF ");
+  if(Radio.isStereo())Serial.print("STEREO ");
+  Serial.print("Sinal: ");
+  Serial.print(Radio.getSignal());
+  Serial.print("/16 IF:");
+  Serial.println(Radio.getIfCounter());
+  Serial.println("*****************************************************");
 }
