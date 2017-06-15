@@ -21,24 +21,35 @@ radioFM::radioFM(){
 uint8_t radioFM::radioFM::init(){
 
 	//calculating PLL word
-	uint16_t fReg=(4*((_frequency*1000000)+225000))/32768;
-  uint8_t fHigh=fReg >> 8;
-  uint8_t fLow=fReg & 0XFF;
 
-	Wire.beginTransmission(_address);
-  Wire.write(fHigh);
-  Wire.write(fLow);
-  Wire.write(0xB0);
-  Wire.write(0x10);
-  Wire.write(0x00);
-  Wire.endTransmission();
+	this->setHigSideInjection();
+	this->setFrequency(_frequency);
+	this->stereo();
+	this->resetScanMode();
+	this->unMute();
+	this->setSense(radioFM_senseMiddle);
+	_writeBuffer[4] = 0;
+	_writeBuffer[3] |= B00010000;
+	this->updateStatus();
 	delay(50);
 	this->readStatus();
-
 	return 0;
 }
 
-uint8_t radioFM::setFrecuency(double frecuency){
+uint8_t radioFM::setFrequency(double frequency){
+
+	uint16_t fB;
+
+	if(this->isHighSideInjection()){
+		fB = round(4*(frequency+225000)/32768); //calculating PLL word
+	}
+	else{
+		fB = round(4*(frequency-225000)/32768); //calculating PLL word
+	}
+	uint8_t fqH = fB >> 8;
+  uint8_t fqL = fB & 0xFF;
+	_writeBuffer[0] = fqH;
+	_writeBuffer[1] = fqL;
 	return 0;
 }
 
@@ -71,9 +82,22 @@ uint8_t radioFM::setSense(uint8_t sense){
 	return sense;
 }
 
+void radioFM::setScanMode(){
+	_writeBuffer[0] |= B01000000;
+}
+
+void radioFM::resetScanMode(){
+	_writeBuffer[0] &= B10111111;
+}
+
 double radioFM::getFrecuency(){
 	double frequency;
-	frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4-225000;
+	if(this->isHighSideInjection()){
+			frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4-225000;
+	}
+	else{
+		frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4+225000;
+	}
 	return frequency;
 }
 
@@ -121,12 +145,22 @@ uint8_t radioFM::unMute(){
 	return 0;
 }
 
-uint8_t radioFM::forceMono(){
-	return 0;
+void radioFM::forceMono(){
+	_writeBuffer[2] |= B00001000;
 }
 
-uint8_t radioFM::stereo(){
-	return 0;
+void radioFM::stereo(){
+	_writeBuffer[2] &= B11110111;
+}
+
+bool radioFM::isHighSideInjection(){
+	if(_writeBuffer[2] & B00010000) return true;
+	return false;
+}
+
+bool radioFM::isLowSideInjection(){
+	if(_writeBuffer[2] & B00010000) return false;
+	return true;
 }
 
 bool radioFM::isMute(){
@@ -150,11 +184,21 @@ bool radioFM::isBandLimit(){
 }
 
 uint8_t radioFM::readStatus(){
-	Wire.requestFrom(0x60,5); //reading TEA5767
+	Wire.requestFrom(_address,5); //reading TEA5767
 	uint8_t counter = 0;
 	while (Wire.available()){
 		if(counter<5) _readBuffer[counter]= Wire.read();
 		counter++;
 	}
+	return counter;
+}
+
+uint8_t radioFM::updateStatus(){
+	Wire.beginTransmission(_address);   //writing TEA5767
+	uint8_t counter = 0;
+	for (counter = 0; counter < 5; counter++){
+		Wire.write(_writeBuffer[counter]);
+	}
+	Wire.endTransmission();
 	return counter;
 }
