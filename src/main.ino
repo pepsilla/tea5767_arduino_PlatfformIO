@@ -39,6 +39,9 @@ void setup()   {
   Radio.init();
 
   sCmd.addCommand("fq", setFq_sCmd);
+  sCmd.addCommand("at", autoTune);
+  sCmd.addCommand("scu", autoScanUp);
+  sCmd.addCommand("scd", autoScanDown);
   sCmd.addDefaultHandler(whatDyS);
   /// buttons
 
@@ -53,28 +56,9 @@ void setup()   {
 
   pinMode(Button_scanprev, INPUT);
   digitalWrite(Button_scanprev, HIGH); //pull up resistor
-  /*
-  frequency=96.6; //starting frequency
 
-  frequencyB=4*(frequency*1000000+225000)/32768; //calculating PLL word
-
-  frequencyH=frequencyB>>8;
-
-  frequencyL=frequencyB&0XFF;
-
-  delay(100);
-
-  Wire.beginTransmission(0x60);   //writing TEA5767
-
-  Wire.write(frequencyH);
-  Wire.write(frequencyL);
-  Wire.write(0xB0);
-  Wire.write(0x10);
-  Wire.write(0x00);
-  Wire.endTransmission();
-  */
   Radio.init();
-  delay(100);
+  delay(30);
   Serial.println("... starting");
   Serial.print(">");
 }
@@ -96,7 +80,7 @@ void loop()
 
   if (!digitalRead(Button_scannext)) {
 
-    ///scannnn UP
+    autoScanUp();
 
   };
 
@@ -113,6 +97,7 @@ void loop()
   if (!digitalRead(Button_scanprev)) {
 
     ///scannnn DOWN
+    autoScanDown();
 
   };
 
@@ -139,6 +124,72 @@ void setFq_sCmd(){
   else{
     updateStatus();
   }
+}
+
+void autoTune(){
+  double aNumber;
+  char *arg;
+  uint8_t initIfCounter = 0;
+  uint8_t lastIfCounter = 0;
+  bool lowInjection = Radio.isLowSideInjection();
+
+  arg = sCmd.next();
+  if (arg != NULL)
+  {
+    Serial.print("Tunning at ");
+    aNumber=atol(arg);
+    Serial.print(aNumber/1000000);
+    Serial.println(" MHz.");
+    Radio.setFrequency(aNumber);
+    Radio.updateStatus();
+    delay(30);
+    Radio.readStatus();
+    initIfCounter = Radio.getIfCounter();
+    lowInjection = !lowInjection;
+    (lowInjection)?Radio.setLowSideInjection():Radio.setHigSideInjection();
+    Radio.setFrequency(aNumber);
+    Radio.updateStatus();
+    delay(30);
+    Radio.readStatus();
+    lastIfCounter = Radio.getIfCounter();
+    Serial.print("{LO:");
+    Serial.print (lowInjection);
+    Serial.print(",IFCOUNTER:");
+    Serial.print(lastIfCounter);
+    Serial.print(",LO:");
+    Serial.print(!lowInjection);
+    Serial.print(",IFCOUNTER:");
+    Serial.print(initIfCounter);
+    Serial.println("}");
+    if(initIfCounter == 55){
+      lowInjection = !lowInjection;
+      (lowInjection)?Radio.setLowSideInjection():Radio.setHigSideInjection();
+      Radio.setFrequency(aNumber);
+      Radio.updateStatus();
+      delay(30);
+      Radio.readStatus();
+      updateStatus();
+    }
+  }
+  else{
+    Serial.print("Need frequency in Hz...");
+  }
+}
+
+void autoScanUp(){
+  Radio.setFrequency(Radio.getFrecuency()+100000);
+  Radio.setSense(radioFM_senseHigh);
+  Radio.scanUp();
+  Radio.setScanMode();
+  Radio.updateStatus();
+}
+
+void autoScanDown(){
+  Radio.setFrequency(Radio.getFrecuency()-100000);
+  Radio.setSense(radioFM_senseHigh);
+  Radio.scanDown();
+  Radio.setScanMode();
+  Radio.updateStatus();
 }
 
 void whatDyS(){
