@@ -39,10 +39,6 @@ class radioFM
 		//Commands and infos
 		uint8_t scanUp();
 		uint8_t scanDown();
-		uint8_t muteScanDown();
-		uint8_t muteScanUp();
-		uint8_t goUp();
-		uint8_t goDowm();
 		uint8_t mute();
 		uint8_t unMute();
 		void forceMono();

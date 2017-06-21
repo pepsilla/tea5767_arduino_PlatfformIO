@@ -93,10 +93,10 @@ void radioFM::resetScanMode(){
 double radioFM::getFrecuency(){
 	double frequency;
 	if(this->isHighSideInjection()){
-			frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4-225000;
+			frequency=round((((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4-225000);
 	}
 	else{
-		frequency=(((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4+225000;
+		frequency=round((((_readBuffer[0]&0x3F)<<8)+_readBuffer[1])*32768/4+225000);
 	}
 	return frequency;
 }
@@ -116,22 +116,6 @@ uint8_t radioFM::scanUp(){
 
 uint8_t radioFM::scanDown(){
 	_writeBuffer[2] &= B01111111;
-	return 0;
-}
-
-uint8_t radioFM::muteScanDown(){
-	return 0;
-}
-
-uint8_t radioFM::muteScanUp(){
-	return 0;
-}
-
-uint8_t radioFM::goUp(){
-	return 0;
-}
-
-uint8_t radioFM::goDowm(){
 	return 0;
 }
 
