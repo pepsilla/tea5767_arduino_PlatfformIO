@@ -35,6 +35,7 @@ class radioFM
 		double getFrecuency();
 		uint8_t getIfCounter();
 		uint8_t getSignal();
+		uint8_t getSense();
 
 		//Commands and infos
 		uint8_t scanUp();
@@ -55,8 +56,9 @@ class radioFM
 
 
 	private:
-		int _address;
+		uint8_t _address;
 		double _frequency;
+		uint8_t _sense;
 		uint8_t _readBuffer[5];
 		uint8_t _writeBuffer[5];
 };

@@ -151,24 +151,25 @@ void autoTune(){
     Radio.readStatus();
     initIfCounter = Radio.getIfCounter();
     lowInjection = !lowInjection;
-    (lowInjection)?Radio.setLowSideInjection():Radio.setHigSideInjection();
+    (lowInjection)?Radio.setHigSideInjection():Radio.setLowSideInjection();
     Radio.setFrequency(aNumber);
     Radio.updateStatus();
     delay(30);
     Radio.readStatus();
     lastIfCounter = Radio.getIfCounter();
-    if(!lowInjection) Serial.print("{LO:");
-    else Serial.print("{HI:");
+    if(!lowInjection) Serial.print("{{LO:1");
+    else Serial.print("{{HI:1");
     Serial.print(",IFCOUNTER:");
     Serial.print(lastIfCounter);
-    if(lowInjection) Serial.print("{LO:");
-    else Serial.print("{HI:");
+    Serial.print("},");
+    if(lowInjection) Serial.print("{LO:1");
+    else Serial.print("{HI:1");
     Serial.print(",IFCOUNTER:");
     Serial.print(initIfCounter);
-    Serial.println("}");
+    Serial.println("}}");
     if(initIfCounter  > 53 || initIfCounter <57){
       lowInjection = !lowInjection;
-      (lowInjection)?Radio.setLowSideInjection():Radio.setHigSideInjection();
+      (lowInjection)?Radio.setHigSideInjection():Radio.setLowSideInjection();
       Radio.setFrequency(aNumber);
       Radio.updateStatus();
       delay(30);
@@ -189,19 +190,27 @@ void autoScanUp(){
   Radio.scanUp();
   Radio.setScanMode();
   Radio.updateStatus();
-  while(loops<10 && !Radio.isRf()){
+  delay(30);
+  Radio.readStatus();
+  Serial.println(loops);
+  Serial.println(Radio.isRf());
+  Serial.println(Radio.getSignal());
+  Serial.println(Radio.getSense());
+  while(loops<10 && !Radio.isRf() && Radio.getSignal() < Radio.getSense()){
     delay(30);
     Radio.readStatus();
-    loops ++;
+    loops += 1;
   }
   delay(30);
   Radio.readStatus();
+  Serial.print("loops:");
+  Serial.println(loops);
   updateStatus();
 }
 
 void autoScanDown(){
   uint8_t loops = 0;
-  
+
   Radio.setFrequency(Radio.getFrecuency()-100000);
   Radio.setSense(radioFM_senseHigh);
   Radio.scanDown();
@@ -236,8 +245,11 @@ void updateStatus(){
   Radio.readStatus();
   Serial.println("*****************************************************");
   Serial.print("FRECUENCY: ");
-  Serial.print(Radio.getFrecuency());
-  Serial.println(" Hz.");
+  Serial.print(Radio.getFrecuency()/1000000);
+  Serial.print(" MHz. ");
+  if(Radio.isBandLimit())Serial.print("BLF ");
+  else Serial.print("OK. ");
+  Serial.println(Radio.getSense());
   if(Radio.isRf())Serial.print("RF ");
   else Serial.print("-- ");
   if(Radio.isStereo())Serial.print("STEREO ");

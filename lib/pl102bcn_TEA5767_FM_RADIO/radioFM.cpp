@@ -67,19 +67,28 @@ uint8_t radioFM::setSense(uint8_t sense){
 	if(sense == 0 || sense == 1){
 		_writeBuffer[2] &= B10011111;
 		_writeBuffer[2] |= B00100000;
+		_sense = 5;
 		return 0;
 	}
 	if(sense == 2){
 		_writeBuffer[2] &= B10011111;
 		_writeBuffer[2] |= B01000000;
+		_sense = 7;
 		return 0;
 	}
 	if(sense == 3){
 		_writeBuffer[2] &= B10011111;
 		_writeBuffer[2] |= B01100000;
+		_sense = 10;
 		return 0;
 	}
+	_sense = sense;
 	return sense;
+}
+
+uint8_t radioFM::getSense()
+{
+	return _sense;
 }
 
 void radioFM::setScanMode(){
@@ -107,6 +116,10 @@ uint8_t radioFM::getIfCounter(){
 
 uint8_t radioFM::getSignal(){
 	return (_readBuffer[3]>>4);
+}
+
+uint8_t radioFM::getSense(){
+	return _sense;
 }
 
 uint8_t radioFM::scanUp(){
